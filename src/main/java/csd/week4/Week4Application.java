@@ -29,8 +29,8 @@ public class Week4Application {
                 "id SERIAL PRIMARY KEY, title VARCHAR(255))");
 
         List<Book> listBooks = Arrays.asList(
-            //new Book("The Big Short"),
-            //new Book("Gone With The Wind")
+            new Book("The Big Short"),
+            new Book("Gone With The Wind")
         );
 
         listBooks.forEach(book -> {
