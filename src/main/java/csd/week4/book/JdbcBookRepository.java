@@ -91,12 +91,11 @@ public class JdbcBookRepository implements BookRepository {
     @Override
     public Optional<Book> findById(Long id) {
         try{
-            return jdbcTemplate.queryForObject(
-                    "select * from books where id = ?",
-                    new Object[]{id},
-                    // implement RowMapper interface to return the book found
-                    // using a lambda expression
-                    (rs, rowNum) -> Optional.of(new Book(rs.getLong("id"), rs.getString("title"))));
+            return jdbcTemplate.queryForObject("select * from books where id = ?",
+            // implement RowMapper interface to return the book found
+            // using a lambda expression
+            (rs, rowNum) -> Optional.of(new Book(rs.getLong("id"), rs.getString("title"))), 
+            new Object[]{id});
 
         }catch(EmptyResultDataAccessException e){
             // book not found - return an empty object
