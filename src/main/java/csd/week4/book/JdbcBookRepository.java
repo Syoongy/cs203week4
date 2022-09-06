@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -15,15 +16,14 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcBookRepository implements BookRepository {
-    
+
     private JdbcTemplate jdbcTemplate;
 
     // Autowired the JdbcTemplate with constructor injection
-    public JdbcBookRepository(JdbcTemplate template){
+    public JdbcBookRepository(JdbcTemplate template) {
         this.jdbcTemplate = template;
     }
 
-    
     /**
      * We need to return the auto-generated id of the insert operation
      * 
@@ -34,10 +34,12 @@ public class JdbcBookRepository implements BookRepository {
         GeneratedKeyHolder holder = new GeneratedKeyHolder();
         jdbcTemplate.update(new PreparedStatementCreator() {
             public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
-                PreparedStatement statement = conn.prepareStatement("insert into books (title) values (?) ", Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement statement = conn.prepareStatement("insert into books (title) values (?) ",
+                        Statement.RETURN_GENERATED_KEYS);
                 statement.setString(1, book.getTitle());
                 return statement;
-            }}, holder);
+            }
+        }, holder);
 
         Long primaryKey = holder.getKey().longValue();
         return primaryKey;
@@ -51,9 +53,14 @@ public class JdbcBookRepository implements BookRepository {
     @Override
     public int update(Book book) {
         // your code here
-        
-        // you should change the return value also
-        return 0;
+        return jdbcTemplate.update(new PreparedStatementCreator() {
+            public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+                PreparedStatement stmt = conn.prepareStatement("UPDATE books SET title=? WHERE id=?");
+                stmt.setString(1, book.getTitle());
+                stmt.setLong(2, book.getId());
+                return stmt;
+            }
+        });
     }
 
     /**
@@ -68,36 +75,41 @@ public class JdbcBookRepository implements BookRepository {
     /**
      * TODO: Activity 1 - Add code to return all books
      * Hint: use the "query" method of JdbcTemplate
-     * Refer to the below code of "findByID" method on how to implement a RowMapper using a lambda expression
+     * Refer to the below code of "findByID" method on how to implement a RowMapper
+     * using a lambda expression
      * 
      */
     @Override
     public List<Book> findAll() {
         // your code here
-        
+        String stmt = "SELECT * FROM books";
+        List<Book> books = jdbcTemplate.query(
+                stmt,
+                (rs, rowNum) -> new Book(rs.getLong("id"), rs.getString("title")));
         // return value should be changed
-        return null;
+        return books;
     }
-    
+
     /**
      * QueryForObject method: to query a single row in the database
      * 
      * The "select *" returns a ResultSet (rs)
-     * The Lambda expression (an instance of RowMapper) returns an object instance using "rs"
+     * The Lambda expression (an instance of RowMapper) returns an object instance
+     * using "rs"
      * 
      * Optional: a container which may contain null objects
-     *  -> To handle the case in which the given id is not found
+     * -> To handle the case in which the given id is not found
      */
     @Override
     public Optional<Book> findById(Long id) {
-        try{
+        try {
             return jdbcTemplate.queryForObject("select * from books where id = ?",
-            // implement RowMapper interface to return the book found
-            // using a lambda expression
-            (rs, rowNum) -> Optional.of(new Book(rs.getLong("id"), rs.getString("title"))), 
-            new Object[]{id});
+                    // implement RowMapper interface to return the book found
+                    // using a lambda expression
+                    (rs, rowNum) -> Optional.of(new Book(rs.getLong("id"), rs.getString("title"))),
+                    new Object[] { id });
 
-        }catch(EmptyResultDataAccessException e){
+        } catch (EmptyResultDataAccessException e) {
             // book not found - return an empty object
             return Optional.empty();
         }
